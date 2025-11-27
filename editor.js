@@ -62,7 +62,9 @@ function loadTemplateFromURL(url) {
                 rotateEnabled: true,
                 enabledAnchors: [
                     "top-left", "top-right",
-                    "bottom-left", "bottom-right"
+                    "bottom-left", "bottom-right",
+                    "middle-left", "middle-right",
+                    "top-center", "bottom-center"
                 ]
             });
             layer.add(imageTransformer);
@@ -165,7 +167,15 @@ function loadState(isUndo) {
         layer.destroyChildren();
 
         // Re-add the transformer
-        transformer = new Konva.Transformer();
+        transformer = new Konva.Transformer({
+            rotateEnabled: true,
+            enabledAnchors: [
+                "top-left", "top-right",
+                "bottom-left", "bottom-right",
+                "middle-left", "middle-right",
+                "top-center", "bottom-center"
+            ]
+        });
         layer.add(transformer);
 
         // Move children from temp layer to real layer, and re-setup listeners
@@ -351,6 +361,19 @@ function setupSidebar(shape) {
             const textColor = shape.fill() || '#ffffff';
             document.getElementById('color-picker').value = textColor;
             document.getElementById('color-hex-input').value = textColor;
+
+            // Alignment
+            document.getElementById('text-align-select').value = shape.align() || 'left';
+
+            // Line Height
+            const lineHeight = shape.lineHeight() || 1.2;
+            document.getElementById('line-height-slider').value = lineHeight;
+            document.getElementById('line-height-value').textContent = lineHeight.toFixed(1);
+
+            // Letter Spacing
+            const letterSpacing = shape.letterSpacing() || 0;
+            document.getElementById('letter-spacing-slider').value = letterSpacing;
+            document.getElementById('letter-spacing-value').textContent = letterSpacing.toFixed(1);
         }
     }
 
@@ -383,6 +406,21 @@ function setupSidebar(shape) {
             document.getElementById('shadow-offset-y').value = shape.shadowOffsetY() || 5;
         }
     }
+
+    // --- Stroke Properties ---
+    const strokeColor = shape.stroke() || '#000000';
+    const strokeWidth = shape.strokeWidth() || 0;
+
+    // Must re-fetch elements as they are defined globally but should be checked if available
+    const strokeColorPicker = document.getElementById('stroke-color-picker');
+    const strokeColorHex = document.getElementById('stroke-color-hex');
+    const strokeWidthSlider = document.getElementById('stroke-width-slider');
+    const strokeWidthValue = document.getElementById('stroke-width-value');
+
+    if (strokeColorPicker) strokeColorPicker.value = strokeColor;
+    if (strokeColorHex) strokeColorHex.value = strokeColor;
+    if (strokeWidthSlider) strokeWidthSlider.value = strokeWidth;
+    if (strokeWidthValue) strokeWidthValue.textContent = strokeWidth;
 }
 
 /**
@@ -968,7 +1006,15 @@ function initEditor() {
         layer = new Konva.Layer();
         stage.add(layer);
 
-        transformer = new Konva.Transformer();
+        transformer = new Konva.Transformer({
+            rotateEnabled: true,
+            enabledAnchors: [
+                "top-left", "top-right",
+                "bottom-left", "bottom-right",
+                "middle-left", "middle-right",
+                "top-center", "bottom-center"
+            ]
+        });
         layer.add(transformer);
 
         addTextToCanvas('Welcome to Twin Clouds Editor!', 30, '#FFFFFF', 30, 100);
@@ -981,6 +1027,73 @@ function initEditor() {
             }
         });
     }
+
+        // --- New Text Property Listeners (for text-props tab) ---
+        const textAlignSelect = document.getElementById('text-align-select');
+        if (textAlignSelect) textAlignSelect.addEventListener('change', function() {
+            if (selectedShape && selectedShape.getClassName() === 'Text') {
+                selectedShape.align(this.value);
+                layer.draw();
+                saveState();
+            }
+        });
+
+        const lineHeightSlider = document.getElementById('line-height-slider');
+        const lineHeightValue = document.getElementById('line-height-value');
+        if (lineHeightSlider) lineHeightSlider.addEventListener('input', function() {
+            if (selectedShape && selectedShape.getClassName() === 'Text') {
+                const value = parseFloat(this.value);
+                selectedShape.lineHeight(value);
+                lineHeightValue.textContent = value.toFixed(1);
+                layer.draw();
+            }
+        });
+        if (lineHeightSlider) lineHeightSlider.addEventListener('change', saveState);
+
+        const letterSpacingSlider = document.getElementById('letter-spacing-slider');
+        const letterSpacingValue = document.getElementById('letter-spacing-value');
+        if (letterSpacingSlider) letterSpacingSlider.addEventListener('input', function() {
+            if (selectedShape && selectedShape.getClassName() === 'Text') {
+                const value = parseFloat(this.value);
+                selectedShape.letterSpacing(value);
+                letterSpacingValue.textContent = value.toFixed(1);
+                layer.draw();
+            }
+        });
+        if (letterSpacingSlider) letterSpacingSlider.addEventListener('change', saveState);
+
+        // --- New Stroke Property Listeners (for style-props tab) ---
+        const strokeColorPicker = document.getElementById('stroke-color-picker');
+        const strokeColorHex = document.getElementById('stroke-color-hex');
+        const strokeWidthSlider = document.getElementById('stroke-width-slider');
+        const strokeWidthValue = document.getElementById('stroke-width-value');
+
+        const updateStrokeColor = function(color) {
+            if (selectedShape) {
+                selectedShape.stroke(color);
+                if (strokeColorPicker) strokeColorPicker.value = color;
+                if (strokeColorHex) strokeColorHex.value = color;
+                layer.draw();
+                saveState();
+            }
+        };
+
+        if (strokeColorPicker) strokeColorPicker.addEventListener('change', function() {
+            updateStrokeColor(this.value);
+        });
+        if (strokeColorHex) strokeColorHex.addEventListener('change', function() {
+            updateStrokeColor(this.value);
+        });
+
+        if (strokeWidthSlider) strokeWidthSlider.addEventListener('input', function() {
+            if (selectedShape) {
+                const value = parseFloat(this.value);
+                selectedShape.strokeWidth(value);
+                strokeWidthValue.textContent = value;
+                layer.draw();
+            }
+        });
+        if (strokeWidthSlider) strokeWidthSlider.addEventListener('change', saveState);
 
     // DOM ELEMENT REFERENCES
     mockup = document.querySelector('.device-mockup');
